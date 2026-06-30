@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SossePizzerija_API.Models;
 
@@ -22,7 +22,13 @@ namespace SossePizzerija_API.Controllers
             {
                 KorisnikId = request.KorisnikId,
                 UkupnaCijena = request.UkupnaCijena,
-                Status = "Na čekanju"
+                Status = "Na čekanju",
+                NacinPlacanja = request.NacinPlacanja,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                // Dostavljač kreće iz pizzerije
+                DostavljacLatitude = 43.8476,
+                DostavljacLongitude = 18.3564,
             };
 
             _db.Add(narudzba);
@@ -30,7 +36,6 @@ namespace SossePizzerija_API.Controllers
 
             foreach (var stavka in request.Stavke)
             {
-                // Preskoči custom pizze
                 if (stavka.PizzaId == 999) continue;
 
                 var s = new StavkeNarudzbe
@@ -47,6 +52,44 @@ namespace SossePizzerija_API.Controllers
             return Ok(narudzba.NarudzbаId);
         }
 
+        [HttpGet("{id:int}")]
+        public IActionResult GetNarudzbaPracenje(int id)
+        {
+            var narudzba = _db.Narudzbes
+                .Where(n => n.NarudzbаId == id)
+                .Select(n => new
+                {
+                    narudzbaId = n.NarudzbаId,
+                    n.Status,
+                    n.NacinPlacanja,
+                    n.Latitude,
+                    n.Longitude,
+                    n.DostavljacLatitude,
+                    n.DostavljacLongitude,
+                    n.UkupnaCijena,
+                    n.DatumNarudzbe,
+                })
+                .FirstOrDefault();
+
+            if (narudzba == null) return NotFound();
+            return Ok(narudzba);
+        }
+
+        [HttpPut("{id:int}")]
+        public IActionResult AzurirajLokacijuDostavljaca(int id, [FromBody] LokacijaDostavljacaRequest request)
+        {
+            var narudzba = _db.Narudzbes.Find(id);
+            if (narudzba == null) return NotFound();
+
+            narudzba.DostavljacLatitude = request.Latitude;
+            narudzba.DostavljacLongitude = request.Longitude;
+            if (!string.IsNullOrEmpty(request.Status))
+                narudzba.Status = request.Status;
+
+            _db.SaveChanges();
+            return Ok();
+        }
+
         [HttpGet("{korisnikId:int}")]
         public IActionResult GetByKorisnik(int korisnikId)
         {
@@ -60,13 +103,11 @@ namespace SossePizzerija_API.Controllers
         [HttpDelete("{id:int}")]
         public IActionResult ObrisiNarudzbu(int id)
         {
-            // Prvo obriši stavke
             var stavke = _db.StavkeNarudzbes
                 .Where(s => s.NarudzbаId == id)
                 .ToList();
             _db.RemoveRange(stavke);
 
-            // Zatim obriši narudžbu
             Narudzbe? narudzba = _db.Narudzbes
                 .Where(n => n.NarudzbаId == id)
                 .FirstOrDefault();
@@ -77,12 +118,14 @@ namespace SossePizzerija_API.Controllers
         }
     }
 
-
     public class NarudzbaRequest
     {
         public int KorisnikId { get; set; }
         public decimal UkupnaCijena { get; set; }
         public List<StavkaRequest> Stavke { get; set; } = new();
+        public string? NacinPlacanja { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
     }
 
     public class StavkaRequest
@@ -90,5 +133,12 @@ namespace SossePizzerija_API.Controllers
         public int PizzaId { get; set; }
         public int Kolicina { get; set; }
         public decimal Cijena { get; set; }
+    }
+
+    public class LokacijaDostavljacaRequest
+    {
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public string? Status { get; set; }
     }
 }

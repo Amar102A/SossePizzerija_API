@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
@@ -103,6 +103,7 @@ public partial class SossePizzerijaContext : DbContext
                 .HasMaxLength(50)
                 .HasDefaultValue("Na cekanju");
             entity.Property(e => e.UkupnaCijena).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.NacinPlacanja).HasMaxLength(50);
 
             entity.HasOne(d => d.Korisnik).WithMany(p => p.Narudzbes)
                 .HasForeignKey(d => d.KorisnikId)
