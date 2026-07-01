@@ -26,7 +26,6 @@ namespace SossePizzerija_API.Controllers
                 NacinPlacanja = request.NacinPlacanja,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
-                // Dostavljač kreće iz pizzerije
                 DostavljacLatitude = 43.8476,
                 DostavljacLongitude = 18.3564,
             };
@@ -37,7 +36,6 @@ namespace SossePizzerija_API.Controllers
             foreach (var stavka in request.Stavke)
             {
                 if (stavka.PizzaId == 999) continue;
-
                 var s = new StavkeNarudzbe
                 {
                     NarudzbаId = narudzba.NarudzbаId,
@@ -50,6 +48,32 @@ namespace SossePizzerija_API.Controllers
 
             _db.SaveChanges();
             return Ok(narudzba.NarudzbаId);
+        }
+
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            var narudzbe = _db.Narudzbes
+                .Include(n => n.Korisnik)
+                .OrderByDescending(n => n.DatumNarudzbe)
+                .Select(n => new
+                {
+                    narudzbaId = n.NarudzbаId,
+                    korisnikIme = n.Korisnik != null
+                        ? n.Korisnik.Ime + " " + n.Korisnik.Prezime
+                        : "Nepoznat",
+                    n.KorisnikId,
+                    n.DatumNarudzbe,
+                    n.UkupnaCijena,
+                    n.Status,
+                    n.NacinPlacanja,
+                    n.Latitude,
+                    n.Longitude,
+                    n.DostavljacLatitude,
+                    n.DostavljacLongitude,
+                })
+                .ToList();
+            return Ok(narudzbe);
         }
 
         [HttpGet("{id:int}")]
@@ -73,6 +97,16 @@ namespace SossePizzerija_API.Controllers
 
             if (narudzba == null) return NotFound();
             return Ok(narudzba);
+        }
+
+        [HttpPut("{id:int}")]
+        public IActionResult AzurirajStatus(int id, [FromBody] StatusRequest request)
+        {
+            var narudzba = _db.Narudzbes.Find(id);
+            if (narudzba == null) return NotFound();
+            narudzba.Status = request.Status;
+            _db.SaveChanges();
+            return Ok();
         }
 
         [HttpPut("{id:int}")]
@@ -140,5 +174,10 @@ namespace SossePizzerija_API.Controllers
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public string? Status { get; set; }
+    }
+
+    public class StatusRequest
+    {
+        public string Status { get; set; } = "";
     }
 }
