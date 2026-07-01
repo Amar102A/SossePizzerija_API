@@ -22,6 +22,7 @@ namespace SossePizzerija_API.Controllers
             {
                 KorisnikId = request.KorisnikId,
                 UkupnaCijena = request.UkupnaCijena,
+                DatumNarudzbe = DateTime.Now,
                 Status = "Na čekanju",
                 NacinPlacanja = request.NacinPlacanja,
                 Latitude = request.Latitude,
